@@ -22,15 +22,11 @@ type VMConfig struct {
 
 type ISO struct {
 	Debian string
-	Ubuntu string
-	CentOS string
 }
 
 func GetISOs() ISO {
 	return ISO{
 		Debian: "local:iso/debian-12.8.0-amd64-netinst.iso",
-		Ubuntu: "local:iso/ubuntu-20.04.4-live-server-amd64.iso",
-		CentOS: "local:iso/CentOS-8.5.2111-x86_64-dvd1.iso",
 	}
 }
 
@@ -41,7 +37,7 @@ func NewDefaultVMConfig() VMConfig {
 		Memory:  "2048",
 		Disk:    "local",
 		Net:     "vmbr0",
-		ISO:     "local:iso/debian-12.8.0-amd64-netinst.iso",
+		ISO:     GetISOs().Debian,
 		OSType:  "l26",
 		CPU:     "host",
 		Sockets: "1",
@@ -135,9 +131,6 @@ func CreateVM(apiManager *manager.APIManager, config VMConfig) (map[string]inter
 	if config.ISO != "" {
 		payload["ide2"] = config.ISO + ",media=cdrom"
 	}
-
-	debugJSON, _ := json.MarshalIndent(payload, "", "  ")
-	fmt.Printf("Sending payload to API:\n%s\n", string(debugJSON))
 
 	response, err := apiManager.ApiCall("POST", fmt.Sprintf("/nodes/%s/qemu", config.Node), payload)
 	if err != nil {

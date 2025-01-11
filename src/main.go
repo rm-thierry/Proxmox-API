@@ -15,7 +15,7 @@ func main() {
 	config.Name = "test-vm"
 	config.Cores = "2"
 	config.Memory = "4096"
-	config.ISO = "local:iso/debian-12.8.0-amd64-netinst.iso"
+	config.ISO = handlers.GetISOs().Debian
 
 	result, err := handlers.CreateVM(apiManager, config)
 	if err != nil {
