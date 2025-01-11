@@ -10,15 +10,16 @@ import (
 
 func main() {
 	apiManager := manager.NewAPIManager()
-	node := "pve"
-	vmid := "100"
 
-	vmDetails, err := handlers.GetVM(apiManager, node, vmid)
+	node, err := handlers.GetNode(apiManager, "pve")
 	if err != nil {
-		log.Fatalf("Error fetching VM details: %v", err)
+		log.Fatalf("Error getting node: %v", err)
 	}
 
-	JSON, _ := json.MarshalIndent(vmDetails, "", "  ")
+	JSONNODES, err := json.MarshalIndent(node, "", "    ")
+	if err != nil {
+		log.Fatalf("Error marshaling node data: %v", err)
+	}
 
-	fmt.Printf("VM Details: %s\n", JSON)
+	fmt.Println(string(JSONNODES))
 }
