@@ -22,6 +22,8 @@ func main() {
 		log.Fatalf("Error creating VM: %v", err)
 	}
 
+	//Test
+
 	JSONNODES, _ := json.MarshalIndent(result, "", " ")
 	fmt.Println(string(JSONNODES))
 }
