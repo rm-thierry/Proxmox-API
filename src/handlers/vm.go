@@ -6,6 +6,41 @@ import (
 	"rm-thierry/Proxmox-API/src/manager"
 )
 
+type VMConfig struct {
+	Node    string
+	VMID    string
+	Name    string
+	Cores   string
+	Memory  string
+	Disk    string
+	Net     string
+	ISO     string
+	OSType  string
+	CPU     string
+	Sockets string
+}
+
+type ISO struct {
+	Debian = "local:iso/debian-12.8.0-amd64-netinst.iso",
+	Ubuntu = "local:iso/ubuntu-20.04.4-live-server-amd64.iso",
+	CentOS = "local:iso/CentOS-8.5.2111-x86_64-dvd1.iso",
+}
+
+
+func NewDefaultVMConfig() VMConfig {
+	return VMConfig{
+		Node:    "pve",
+		Cores:   "1",
+		Memory:  "2048",
+		Disk:    "local",
+		Net:     "vmbr0",
+		ISO:     "local:iso/debian-12.8.0-amd64-netinst.iso",
+		OSType:  "l26",
+		CPU:     "host",
+		Sockets: "1",
+	}
+}
+
 func GetVMS(apiManager *manager.APIManager, node string) ([]map[string]interface{}, error) {
 	response, err := apiManager.ApiCall("GET", fmt.Sprintf("/nodes/%s/qemu", node), nil)
 	if err != nil {
@@ -68,25 +103,50 @@ func GetVMIDByName(apiManager *manager.APIManager, node string, vmname string) (
 	return "", fmt.Errorf("VM not found")
 }
 
-func CreateVM(apiManager *manager.APIManager, node string, vmid string, vmname string, cores string, memory string, disk string, net string) (map[string]interface{}, error) {
-	payload := map[string]interface{}{
-		"vmid":   vmid,
-		"name":   vmname,
-		"cores":  cores,
-		"memory": memory,
-		"disk":   disk,
-		"net":    net,
+func CreateVM(apiManager *manager.APIManager, config VMConfig) (map[string]interface{}, error) {
+	if config.VMID == "" {
+		return nil, fmt.Errorf("VMID is required")
+	}
+	if config.Name == "" {
+		return nil, fmt.Errorf("VM name is required")
 	}
 
-	response, err := apiManager.ApiCall("POST", fmt.Sprintf("/nodes/%s/qemu", node), payload)
+	payload := map[string]interface{}{
+		"vmid":     config.VMID,
+		"name":     config.Name,
+		"cores":    config.Cores,
+		"memory":   config.Memory,
+		"virtio0":  config.Disk + ":0",
+		"net0":     "virtio,bridge=" + config.Net,
+		"ostype":   config.OSType,
+		"scsihw":   "virtio-scsi-pci",
+		"bootdisk": "virtio0",
+		"sockets":  config.Sockets,
+		"cpu":      config.CPU,
+	}
+
+	if config.ISO != "" {
+		payload["ide2"] = config.ISO + ",media=cdrom"
+	}
+
+	debugJSON, _ := json.MarshalIndent(payload, "", "  ")
+	fmt.Printf("Sending payload to API:\n%s\n", string(debugJSON))
+
+	response, err := apiManager.ApiCall("POST", fmt.Sprintf("/nodes/%s/qemu", config.Node), payload)
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Printf("Raw API Response:\n%s\n", string(response))
 
 	var result map[string]interface{}
 	err = json.Unmarshal(response, &result)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing JSON response: %v", err)
+	}
+
+	if result == nil {
+		return nil, fmt.Errorf("received empty response from API")
 	}
 
 	return result, nil
