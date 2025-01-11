@@ -29,13 +29,10 @@ func GetVMS(apiManager *manager.APIManager, node string) ([]map[string]interface
 	}
 
 	return vms, nil
-
 }
 
 func GetVM(apiManager *manager.APIManager, node string, vmid string) (map[string]interface{}, error) {
-	endpoint := fmt.Sprintf("/nodes/%s/qemu/%s/status/current", node, vmid)
-
-	response, err := apiManager.ApiCall("GET", endpoint, nil)
+	response, err := apiManager.ApiCall("GET", fmt.Sprintf("/nodes/%s/qemu/%s/status/current", node, vmid), nil)
 	if err != nil {
 		return nil, fmt.Errorf("error performing API call: %v", err)
 	}
@@ -45,9 +42,10 @@ func GetVM(apiManager *manager.APIManager, node string, vmid string) (map[string
 	if err != nil {
 		return nil, fmt.Errorf("error parsing JSON response: %v", err)
 	}
+
 	data, ok := result["data"].(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("unexpected response format: missing 'data'")
+		return nil, fmt.Errorf("unexpected response format")
 	}
 
 	return data, nil
@@ -60,8 +58,10 @@ func GetVMIDByName(apiManager *manager.APIManager, node string, vmname string) (
 	}
 
 	for _, vm := range vms {
-		if vm["name"] == vmname {
-			return vm["vmid"].(string), nil
+		if name, ok := vm["name"].(string); ok && name == vmname {
+			if vmid, ok := vm["vmid"].(float64); ok {
+				return fmt.Sprintf("%.0f", vmid), nil
+			}
 		}
 	}
 
@@ -71,7 +71,7 @@ func GetVMIDByName(apiManager *manager.APIManager, node string, vmname string) (
 func CreateVM(apiManager *manager.APIManager, node string, vmid string, vmname string, cores string, memory string, disk string, net string) (map[string]interface{}, error) {
 	payload := map[string]interface{}{
 		"vmid":   vmid,
-		"vmname": vmname,
+		"name":   vmname,
 		"cores":  cores,
 		"memory": memory,
 		"disk":   disk,
@@ -108,11 +108,7 @@ func DeleteVM(apiManager *manager.APIManager, node string, vmid string) (map[str
 }
 
 func StartVM(apiManager *manager.APIManager, node string, vmid string) (map[string]interface{}, error) {
-	payload := map[string]interface{}{
-		"state": "start",
-	}
-
-	response, err := apiManager.ApiCall("POST", fmt.Sprintf("/nodes/%s/qemu/%s/status/start", node, vmid), payload)
+	response, err := apiManager.ApiCall("POST", fmt.Sprintf("/nodes/%s/qemu/%s/status/start", node, vmid), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -127,11 +123,7 @@ func StartVM(apiManager *manager.APIManager, node string, vmid string) (map[stri
 }
 
 func StopVM(apiManager *manager.APIManager, node string, vmid string) (map[string]interface{}, error) {
-	payload := map[string]interface{}{
-		"state": "stop",
-	}
-
-	response, err := apiManager.ApiCall("POST", fmt.Sprintf("/nodes/%s/qemu/%s/status/stop", node, vmid), payload)
+	response, err := apiManager.ApiCall("POST", fmt.Sprintf("/nodes/%s/qemu/%s/status/stop", node, vmid), nil)
 	if err != nil {
 		return nil, err
 	}
