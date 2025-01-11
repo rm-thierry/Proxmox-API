@@ -33,9 +33,11 @@ func GetVMS(apiManager *manager.APIManager, node string) ([]map[string]interface
 }
 
 func GetVM(apiManager *manager.APIManager, node string, vmid string) (map[string]interface{}, error) {
-	response, err := apiManager.ApiCall("GET", fmt.Sprintf("/nodes/%s/qemu/%s/status/current", node, vmid), nil)
+	endpoint := fmt.Sprintf("/nodes/%s/qemu/%s/status/current", node, vmid)
+
+	response, err := apiManager.ApiCall("GET", endpoint, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error performing API call: %v", err)
 	}
 
 	var result map[string]interface{}
@@ -43,8 +45,12 @@ func GetVM(apiManager *manager.APIManager, node string, vmid string) (map[string
 	if err != nil {
 		return nil, fmt.Errorf("error parsing JSON response: %v", err)
 	}
+	data, ok := result["data"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unexpected response format: missing 'data'")
+	}
 
-	return result, nil
+	return data, nil
 }
 
 func GetVMIDByName(apiManager *manager.APIManager, node string, vmname string) (string, error) {
