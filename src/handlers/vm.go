@@ -21,11 +21,18 @@ type VMConfig struct {
 }
 
 type ISO struct {
-	Debian =: "local:iso/debian-12.8.0-amd64-netinst.iso",
-	Ubuntu = "local:iso/ubuntu-20.04.4-live-server-amd64.iso",
-	CentOS = "local:iso/CentOS-8.5.2111-x86_64-dvd1.iso",
+	Debian string
+	Ubuntu string
+	CentOS string
 }
 
+func GetISOs() ISO {
+	return ISO{
+		Debian: "local:iso/debian-12.8.0-amd64-netinst.iso",
+		Ubuntu: "local:iso/ubuntu-20.04.4-live-server-amd64.iso",
+		CentOS: "local:iso/CentOS-8.5.2111-x86_64-dvd1.iso",
+	}
+}
 
 func NewDefaultVMConfig() VMConfig {
 	return VMConfig{
