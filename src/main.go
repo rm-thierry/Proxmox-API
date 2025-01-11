@@ -10,16 +10,18 @@ import (
 
 func main() {
 	apiManager := manager.NewAPIManager()
+	config := handlers.NewDefaultVMConfig()
+	config.VMID = "111"
+	config.Name = "test-vm"
+	config.Cores = "2"
+	config.Memory = "4096"
+	config.ISO = handlers.GetISOs().Debian
 
-	node, err := handlers.GetNode(apiManager, "pve")
+	result, err := handlers.CreateVM(apiManager, config)
 	if err != nil {
-		log.Fatalf("Error getting node: %v", err)
+		log.Fatalf("Error creating VM: %v", err)
 	}
 
-	JSONNODES, err := json.MarshalIndent(node, "", "    ")
-	if err != nil {
-		log.Fatalf("Error marshaling node data: %v", err)
-	}
-
+	JSONNODES, _ := json.MarshalIndent(result, "", " ")
 	fmt.Println(string(JSONNODES))
 }
