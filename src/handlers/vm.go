@@ -21,9 +21,14 @@ type VMConfig struct {
 }
 
 type ISO struct {
-  Debian
+	Debian string
 }
 
+func GetISOs() ISO {
+	return ISO{
+		Debian: "local:iso/debian-12.8.0-amd64-netinst.iso",
+	}
+}
 
 func NewDefaultVMConfig() VMConfig {
 	return VMConfig{
@@ -32,6 +37,7 @@ func NewDefaultVMConfig() VMConfig {
 		Memory:  "2048",
 		Disk:    "local",
 		Net:     "vmbr0",
+		ISO:     GetISOs().Debian,
 		OSType:  "l26",
 		CPU:     "host",
 		Sockets: "1",
@@ -120,6 +126,11 @@ func CreateVM(apiManager *manager.APIManager, config VMConfig) (map[string]inter
 		"bootdisk": "virtio0",
 		"sockets":  config.Sockets,
 		"cpu":      config.CPU,
+	}
+
+	if config.ISO != "" {
+		payload["ide2"] = config.ISO + ",media=cdrom"
+	}
 
 	response, err := apiManager.ApiCall("POST", fmt.Sprintf("/nodes/%s/qemu", config.Node), payload)
 	if err != nil {
