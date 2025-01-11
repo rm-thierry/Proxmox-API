@@ -22,5 +22,5 @@ This project is a custom API wrapper designed to simplify interactions with the 
 Clone this repository:
 
 ```bash
-git clone https://github.com/your-username/proxmox-api-wrapper.git
-cd proxmox-api-wrapper
+git clone https://github.com/rm-thierry/Proxmox-API.git
+
