@@ -12,4 +12,5 @@ func main() {
 	apiManager := manager.NewAPIManager()
 	api.SetupRoutes(router, apiManager)
 	router.Run(":8080")
+	print("Server running on port 8080")
 }
