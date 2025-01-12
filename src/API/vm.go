@@ -8,19 +8,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type Response struct {
+	Success bool        `json:"success"`
+	Data    interface{} `json:"data,omitempty"`
+	Error   string      `json:"error,omitempty"`
+}
+
 type VMHandler struct {
 	apiManager *manager.APIManager
 }
 
 func NewVMHandler(apiManager *manager.APIManager) *VMHandler {
-	return &VMHandler{
-		apiManager: apiManager,
-	}
+	return &VMHandler{apiManager: apiManager}
 }
 
 func SetupRoutes(router *gin.Engine, apiManager *manager.APIManager) {
 	handler := NewVMHandler(apiManager)
-
 	v1 := router.Group("/api/v1")
 	{
 		vms := v1.Group("/vms")
@@ -35,13 +38,18 @@ func SetupRoutes(router *gin.Engine, apiManager *manager.APIManager) {
 	}
 }
 
+func sendResponse(c *gin.Context, statusCode int, success bool, data interface{}, err string) {
+	c.JSON(statusCode, Response{
+		Success: success,
+		Data:    data,
+		Error:   err,
+	})
+}
+
 func (h *VMHandler) CreateVM(c *gin.Context) {
 	var config handlers.VMConfig
 	if err := c.ShouldBindJSON(&config); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "Invalid request body",
-		})
+		sendResponse(c, http.StatusBadRequest, false, nil, "Invalid request body")
 		return
 	}
 
@@ -56,7 +64,6 @@ func (h *VMHandler) CreateVM(c *gin.Context) {
 	}
 
 	isos := handlers.GetISOs()
-
 	switch config.OSType {
 	case "debian":
 		config.ISO = isos.Debian
@@ -66,29 +73,11 @@ func (h *VMHandler) CreateVM(c *gin.Context) {
 
 	result, err := handlers.CreateVM(h.apiManager, config)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
+		sendResponse(c, http.StatusInternalServerError, false, nil, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"success": true,
-		"data":    result,
-	})
-}
-
-type ISO struct {
-	Debian string
-	Ubuntu string
-}
-
-func GetISOs() ISO {
-	return ISO{
-		Debian: "local:iso/debian-12.8.0-amd64-netinst.iso",
-		Ubuntu: "local:iso/ubuntu-22.04.3-live-server-amd64.iso",
-	}
+	sendResponse(c, http.StatusCreated, true, result, "")
 }
 
 func (h *VMHandler) ListVMs(c *gin.Context) {
@@ -96,17 +85,11 @@ func (h *VMHandler) ListVMs(c *gin.Context) {
 
 	vms, err := handlers.GetVMS(h.apiManager, node)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
+		sendResponse(c, http.StatusInternalServerError, false, nil, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    vms,
-	})
+	sendResponse(c, http.StatusOK, true, vms, "")
 }
 
 func (h *VMHandler) GetVM(c *gin.Context) {
@@ -115,17 +98,11 @@ func (h *VMHandler) GetVM(c *gin.Context) {
 
 	vm, err := handlers.GetVM(h.apiManager, node, vmid)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
+		sendResponse(c, http.StatusInternalServerError, false, nil, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    vm,
-	})
+	sendResponse(c, http.StatusOK, true, vm, "")
 }
 
 func (h *VMHandler) DeleteVM(c *gin.Context) {
@@ -134,17 +111,11 @@ func (h *VMHandler) DeleteVM(c *gin.Context) {
 
 	result, err := handlers.DeleteVM(h.apiManager, node, vmid)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
+		sendResponse(c, http.StatusInternalServerError, false, nil, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    result,
-	})
+	sendResponse(c, http.StatusOK, true, result, "")
 }
 
 func (h *VMHandler) StartVM(c *gin.Context) {
@@ -153,17 +124,11 @@ func (h *VMHandler) StartVM(c *gin.Context) {
 
 	result, err := handlers.StartVM(h.apiManager, node, vmid)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
+		sendResponse(c, http.StatusInternalServerError, false, nil, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    result,
-	})
+	sendResponse(c, http.StatusOK, true, result, "")
 }
 
 func (h *VMHandler) StopVM(c *gin.Context) {
@@ -172,15 +137,9 @@ func (h *VMHandler) StopVM(c *gin.Context) {
 
 	result, err := handlers.StopVM(h.apiManager, node, vmid)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
+		sendResponse(c, http.StatusInternalServerError, false, nil, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    result,
-	})
+	sendResponse(c, http.StatusOK, true, result, "")
 }

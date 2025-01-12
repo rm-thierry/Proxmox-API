@@ -1,16 +1,32 @@
 package main
 
 import (
-	"rm-thierry/Proxmox-API/src/api"
+	"encoding/json"
+	"fmt"
+	"log"
+	"rm-thierry/Proxmox-API/src/handlers"
 	"rm-thierry/Proxmox-API/src/manager"
-
-	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	router := gin.Default()
+	// router := gin.Default()
+	// api.SetupRoutes(router, apiManager)
+	// router.Run(":8080")
+	// print("Server running on port 8080")
+
 	apiManager := manager.NewAPIManager()
-	api.SetupRoutes(router, apiManager)
-	router.Run(":8080")
-	print("Server running on port 8080")
+
+	config := handlers.NewDefaultVMConfig()
+	config.VMID = "121"
+	config.Name = "test-vm"
+	config.Memory = "4096"
+	config.Cores = "2"
+
+	result, err := handlers.CreateVM(apiManager, config)
+	if err != nil {
+		log.Fatalf("Error creating VM: %v", err)
+	}
+
+	prettyJSON, _ := json.MarshalIndent(result, "", "    ")
+	fmt.Printf("\nVM Creation Result:\n%s\n", string(prettyJSON))
 }
