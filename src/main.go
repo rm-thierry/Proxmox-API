@@ -17,17 +17,16 @@ func main() {
 	apiManager := manager.NewAPIManager()
 
 	config := handlers.NewDefaultVMConfig()
+	config.VMID = "121"
 	config.Name = "test-vm"
+	config.Memory = "4096"
+	config.Cores = "2"
 
 	result, err := handlers.CreateVM(apiManager, config)
 	if err != nil {
 		log.Fatalf("Error creating VM: %v", err)
 	}
 
-	prettyJSON, err := json.MarshalIndent(result, "", "    ")
-	if err != nil {
-		log.Fatalf("Error formatting JSON: %v", err)
-	}
-
+	prettyJSON, _ := json.MarshalIndent(result, "", "    ")
 	fmt.Printf("\nVM Creation Result:\n%s\n", string(prettyJSON))
 }

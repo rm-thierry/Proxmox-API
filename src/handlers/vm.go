@@ -50,6 +50,10 @@ func NewDefaultVMConfig() VMConfig {
 }
 
 func validateVM(apiManager *manager.APIManager, config VMConfig) error {
+	if config.VMID == "" || config.Name == "" {
+		return fmt.Errorf("VMID and Name are required")
+	}
+
 	exists, err := checkVMExists(apiManager, config.Node, config.VMID)
 	if err != nil {
 		return err
@@ -234,28 +238,11 @@ func GetVMIDByName(apiManager *manager.APIManager, node string, vmname string) (
 }
 
 func CreateVM(apiManager *manager.APIManager, config VMConfig) (map[string]interface{}, error) {
-	if config.VMID == "" {
-		var err error
-		config.VMID, err = GetHighestVMID(apiManager, config.Node)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate VMID: %v", err)
-		}
-		fmt.Printf("Generated VMID: %s\n", config.VMID) // Debug output
-	}
-
-	if config.Name == "" {
-		config.Name = fmt.Sprintf("vm-%s", config.VMID)
-	}
-
 	if err := validateVM(apiManager, config); err != nil {
 		return nil, err
 	}
 
 	payload := buildVMPayload(config)
-
-	payloadJSON, _ := json.MarshalIndent(payload, "", "  ")
-	fmt.Printf("Creating VM with payload:\n%s\n", string(payloadJSON))
-
 	response, err := apiManager.ApiCall("POST", fmt.Sprintf("/nodes/%s/qemu", config.Node), payload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create VM: %v", err)
