@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+	apiManager := manager.NewAPIManager()
 	// router := gin.Default()
 	// api.SetupRoutes(router, apiManager)
 	// router.Run(":8080")
@@ -21,8 +22,6 @@ func main() {
 	// if err != nil {
 	// 	log.Fatalf("Error creating DB manager: %v", err)
 	// }
-
-	apiManager := manager.NewAPIManager()
 
 	id, err := handlers.GetHighestVMID(apiManager, apiManager.Node)
 	if err != nil {

@@ -49,7 +49,6 @@ func main() {
 	}
 	defer manager.Close()
 
-	// Example usage
 	rows, err := manager.Query("SELECT * FROM tablename")
 	if err != nil {
 		log.Fatalf("Query failed: %v", err)
@@ -57,6 +56,5 @@ func main() {
 	defer rows.Close()
 
 	for rows.Next() {
-		// Process rows
 	}
 }
