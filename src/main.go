@@ -16,10 +16,16 @@ func main() {
 
 	apiManager := manager.NewAPIManager()
 
-	id, nil := handlers.GetHighestVMID(apiManager, "pve")
+	id, err := handlers.GetHighestVMID(apiManager, apiManager.Node)
+	if err != nil {
+		log.Fatalf("Error getting highest VM ID: %v", err)
+	} else {
+		fmt.Printf("Highest VM ID: %d\n", id)
+	}
 
 	config := handlers.NewDefaultVMConfig()
-	config.VMID = fmt.Sprintf("%d", id)
+	//	config.VMID = fmt.Sprintf("%d", id)
+	config.VMID = "150"
 	config.Name = "test-vm"
 	config.Memory = "4096"
 	config.Cores = "2"

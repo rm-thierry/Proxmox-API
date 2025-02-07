@@ -81,7 +81,7 @@ func (h *VMHandler) CreateVM(c *gin.Context) {
 }
 
 func (h *VMHandler) ListVMs(c *gin.Context) {
-	node := c.DefaultQuery("node", "pve")
+	node := c.DefaultQuery("node", h.apiManager.Node)
 
 	vms, err := handlers.GetVMS(h.apiManager, node)
 	if err != nil {
@@ -93,7 +93,7 @@ func (h *VMHandler) ListVMs(c *gin.Context) {
 }
 
 func (h *VMHandler) GetVM(c *gin.Context) {
-	node := c.DefaultQuery("node", "pve")
+	node := c.DefaultQuery("node", h.apiManager.Node)
 	vmid := c.Param("vmid")
 
 	vm, err := handlers.GetVM(h.apiManager, node, vmid)
@@ -106,7 +106,7 @@ func (h *VMHandler) GetVM(c *gin.Context) {
 }
 
 func (h *VMHandler) DeleteVM(c *gin.Context) {
-	node := c.DefaultQuery("node", "pve")
+	node := c.DefaultQuery("node", h.apiManager.Node)
 	vmid := c.Param("vmid")
 
 	result, err := handlers.DeleteVM(h.apiManager, node, vmid)
@@ -119,7 +119,7 @@ func (h *VMHandler) DeleteVM(c *gin.Context) {
 }
 
 func (h *VMHandler) StartVM(c *gin.Context) {
-	node := c.DefaultQuery("node", "pve")
+	node := c.DefaultQuery("node", h.apiManager.Node)
 	vmid := c.Param("vmid")
 
 	result, err := handlers.StartVM(h.apiManager, node, vmid)
@@ -132,7 +132,7 @@ func (h *VMHandler) StartVM(c *gin.Context) {
 }
 
 func (h *VMHandler) StopVM(c *gin.Context) {
-	node := c.DefaultQuery("node", "pve")
+	node := c.DefaultQuery("node", h.apiManager.Node)
 	vmid := c.Param("vmid")
 
 	result, err := handlers.StopVM(h.apiManager, node, vmid)

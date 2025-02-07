@@ -29,7 +29,7 @@ type ISO struct {
 
 func GetISOs() ISO {
 	return ISO{
-		Debian:  "local:iso/debian-12.8.0-amd64-netinst.iso",
+		Debian:  "local:iso/debian-12.9.0-amd64-netinst.iso",
 		Ubuntu:  "local:iso/ubuntu-22.04.3-live-server-amd64.iso",
 		Windows: "local:iso/windows-server-2022.iso",
 	}
@@ -37,7 +37,7 @@ func GetISOs() ISO {
 
 func NewDefaultVMConfig() VMConfig {
 	return VMConfig{
-		Node:    "pve",
+		Node:    manager.NewAPIManager().Node,
 		Cores:   "1",
 		Memory:  "2048",
 		Disk:    "local",
