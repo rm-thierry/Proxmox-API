@@ -16,8 +16,10 @@ func main() {
 
 	apiManager := manager.NewAPIManager()
 
+	id, nil := handlers.GetHighestVMID(apiManager, "pve")
+
 	config := handlers.NewDefaultVMConfig()
-	config.VMID = "121"
+	config.VMID = fmt.Sprintf("%d", id)
 	config.Name = "test-vm"
 	config.Memory = "4096"
 	config.Cores = "2"
