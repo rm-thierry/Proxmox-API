@@ -245,9 +245,9 @@ func CreateVM(apiManager *manager.APIManager, config VMConfig) (map[string]inter
 	payload := buildVMPayload(config)
 	response, err := apiManager.ApiCall("POST", fmt.Sprintf("/nodes/%s/qemu", config.Node), payload)
 	if err != nil {
+
 		return nil, fmt.Errorf("failed to create VM: %v", err)
 	}
-
 	return parseAPIResponse(response)
 }
 

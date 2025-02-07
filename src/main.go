@@ -14,6 +14,14 @@ func main() {
 	// router.Run(":8080")
 	// print("Server running on port 8080")
 
+	// DBUser := os.Getenv("DB_USER")
+	// DBPass := os.Getenv("DB_PASS")
+	// DBName := os.Getenv("DB_NAME")
+	// dbmanager, err := manager.NewDBManager(DBUser, DBPass, DBName)
+	// if err != nil {
+	// 	log.Fatalf("Error creating DB manager: %v", err)
+	// }
+
 	apiManager := manager.NewAPIManager()
 
 	id, err := handlers.GetHighestVMID(apiManager, apiManager.Node)
@@ -24,8 +32,7 @@ func main() {
 	}
 
 	config := handlers.NewDefaultVMConfig()
-	//	config.VMID = fmt.Sprintf("%d", id)
-	config.VMID = "150"
+	config.VMID = fmt.Sprintf("%d", id)
 	config.Name = "test-vm"
 	config.Memory = "4096"
 	config.Cores = "2"
