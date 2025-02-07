@@ -14,9 +14,22 @@ func main() {
 	// router.Run(":8080")
 	// print("Server running on port 8080")
 
+	// DBUser := os.Getenv("DB_USER")
+	// DBPass := os.Getenv("DB_PASS")
+	// DBName := os.Getenv("DB_NAME")
+	// dbmanager, err := manager.NewDBManager(DBUser, DBPass, DBName)
+	// if err != nil {
+	// 	log.Fatalf("Error creating DB manager: %v", err)
+	// }
+
 	apiManager := manager.NewAPIManager()
 
-	id, nil := handlers.GetHighestVMID(apiManager, "pve")
+	id, err := handlers.GetHighestVMID(apiManager, apiManager.Node)
+	if err != nil {
+		log.Fatalf("Error getting highest VM ID: %v", err)
+	} else {
+		fmt.Printf("Highest VM ID: %d\n", id)
+	}
 
 	config := handlers.NewDefaultVMConfig()
 	config.VMID = fmt.Sprintf("%d", id)

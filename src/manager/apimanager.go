@@ -14,6 +14,7 @@ import (
 
 type APIManager struct {
 	BaseURL     string
+	Node        string
 	TokenID     string
 	TokenSecret string
 }
@@ -31,6 +32,7 @@ func NewAPIManager() *APIManager {
 
 	return &APIManager{
 		BaseURL:     baseURL,
+		Node:        os.Getenv("NODE"),
 		TokenID:     os.Getenv("PROXMOX_TOKEN_ID"),
 		TokenSecret: os.Getenv("PROXMOX_TOKEN_SECRET"),
 	}
