@@ -302,20 +302,20 @@ func StopVM(apiManager *manager.APIManager, node string, vmid string) (map[strin
 	return parseAPIResponse(response)
 }
 
-func GetHighestVMID(apiManager *manager.APIManager, node string) (string, error) {
+func GetHighestVMID(apiManager *manager.APIManager, node string) (int, error) {
 	response, err := apiManager.ApiCall("GET", fmt.Sprintf("/nodes/%s/qemu", node), nil)
 	if err != nil {
-		return "", fmt.Errorf("failed to get VMs: %v", err)
+		return 0, fmt.Errorf("failed to get VMs: %w", err)
 	}
 
 	var result map[string]interface{}
 	if err := json.Unmarshal(response, &result); err != nil {
-		return "", fmt.Errorf("failed to parse response: %v", err)
+		return 0, fmt.Errorf("failed to parse response: %w", err)
 	}
 
 	data, ok := result["data"].([]interface{})
 	if !ok {
-		return "100", nil
+		return 101, nil
 	}
 
 	highest := 100
@@ -332,5 +332,5 @@ func GetHighestVMID(apiManager *manager.APIManager, node string) (string, error)
 		}
 	}
 
-	return fmt.Sprintf("%d", highest+1), nil
+	return highest + 1, nil
 }
