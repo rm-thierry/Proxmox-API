@@ -5,6 +5,7 @@ import (
 	"rm-thierry/Proxmox-API/src/handlers"
 	"rm-thierry/Proxmox-API/src/manager"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,6 +24,13 @@ func NewVMHandler(apiManager *manager.APIManager) *VMHandler {
 }
 
 func SetupRoutes(router *gin.Engine, apiManager *manager.APIManager) {
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:3000"}
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
+
+	router.Use(cors.New(config))
+
 	handler := NewVMHandler(apiManager)
 	v1 := router.Group("/api/v1")
 	{
@@ -82,64 +90,54 @@ func (h *VMHandler) CreateVM(c *gin.Context) {
 
 func (h *VMHandler) ListVMs(c *gin.Context) {
 	node := c.DefaultQuery("node", h.apiManager.Node)
-
 	vms, err := handlers.GetVMS(h.apiManager, node)
 	if err != nil {
 		sendResponse(c, http.StatusInternalServerError, false, nil, err.Error())
 		return
 	}
-
 	sendResponse(c, http.StatusOK, true, vms, "")
 }
 
 func (h *VMHandler) GetVM(c *gin.Context) {
 	node := c.DefaultQuery("node", h.apiManager.Node)
 	vmid := c.Param("vmid")
-
 	vm, err := handlers.GetVM(h.apiManager, node, vmid)
 	if err != nil {
 		sendResponse(c, http.StatusInternalServerError, false, nil, err.Error())
 		return
 	}
-
 	sendResponse(c, http.StatusOK, true, vm, "")
 }
 
 func (h *VMHandler) DeleteVM(c *gin.Context) {
 	node := c.DefaultQuery("node", h.apiManager.Node)
 	vmid := c.Param("vmid")
-
 	result, err := handlers.DeleteVM(h.apiManager, node, vmid)
 	if err != nil {
 		sendResponse(c, http.StatusInternalServerError, false, nil, err.Error())
 		return
 	}
-
 	sendResponse(c, http.StatusOK, true, result, "")
 }
 
 func (h *VMHandler) StartVM(c *gin.Context) {
 	node := c.DefaultQuery("node", h.apiManager.Node)
 	vmid := c.Param("vmid")
-
 	result, err := handlers.StartVM(h.apiManager, node, vmid)
 	if err != nil {
 		sendResponse(c, http.StatusInternalServerError, false, nil, err.Error())
 		return
 	}
-
 	sendResponse(c, http.StatusOK, true, result, "")
 }
 
 func (h *VMHandler) StopVM(c *gin.Context) {
 	node := c.DefaultQuery("node", h.apiManager.Node)
 	vmid := c.Param("vmid")
-
 	result, err := handlers.StopVM(h.apiManager, node, vmid)
 	if err != nil {
 		sendResponse(c, http.StatusInternalServerError, false, nil, err.Error())
 		return
 	}
-
 	sendResponse(c, http.StatusOK, true, result, "")
 }
