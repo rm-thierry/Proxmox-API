@@ -38,8 +38,8 @@ func GetISOs() ISO {
 func NewDefaultVMConfig() VMConfig {
 	return VMConfig{
 		Node:    manager.NewAPIManager().Node,
-		Cores:   "1",
-		Memory:  "2048",
+		Cores:   "2",
+		Memory:  "4000",
 		Disk:    "local",
 		Net:     "vmbr0",
 		ISO:     GetISOs().Debian,
