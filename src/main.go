@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 	"os"
-	"rm-thierry/Proxmox-API/src/API"
+	api "rm-thierry/Proxmox-API/src/API"
 	"rm-thierry/Proxmox-API/src/manager"
 
 	"github.com/gin-gonic/gin"
@@ -20,9 +20,9 @@ func main() {
 	dbUser := os.Getenv("DBUSER")
 	dbPass := os.Getenv("DBPASS")
 	dbName := os.Getenv("DBNAME")
-	
+
 	var dbManager *manager.DBManager
-	
+
 	if dbHost != "" && dbUser != "" && dbName != "" {
 		config := manager.DBConfig{
 			Host:     dbHost,
