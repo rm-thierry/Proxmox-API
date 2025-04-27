@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -20,14 +20,13 @@ type APIManager struct {
 }
 
 func NewAPIManager() *APIManager {
-	err := godotenv.Load("env/.env")
-	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
-	}
+	// Try to load environment variables but don't fail if not found
+	_ = godotenv.Load("env/.env")
 
 	baseURL := os.Getenv("APIURL")
 	if baseURL == "" {
-		log.Fatalf("APIURL not set in .env file")
+		log.Println("Warning: APIURL not set in environment")
+		baseURL = "https://localhost:8006/api2/json" // Default value
 	}
 
 	return &APIManager{
@@ -55,7 +54,11 @@ func (manager *APIManager) ApiCall(method, endpoint string, payload interface{})
 		return nil, fmt.Errorf("error creating request: %v", err)
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("PVEAPIToken=%s=%s", manager.TokenID, manager.TokenSecret))
+	// Set authentication headers if token credentials are available
+	if manager.TokenID != "" && manager.TokenSecret != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("PVEAPIToken=%s=%s", manager.TokenID, manager.TokenSecret))
+	}
+	
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
@@ -65,7 +68,7 @@ func (manager *APIManager) ApiCall(method, endpoint string, payload interface{})
 	}
 	defer resp.Body.Close()
 
-	responseBody, err := ioutil.ReadAll(resp.Body)
+	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response: %v", err)
 	}

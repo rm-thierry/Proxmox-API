@@ -3,73 +3,59 @@ package main
 import (
 	"log"
 	"os"
+	"rm-thierry/Proxmox-API/src/API"
 	"rm-thierry/Proxmox-API/src/manager"
 
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
 
 func main() {
 
-	//Databse
+	// Database - attempt to load environment variables
+	_ = godotenv.Load("env/.env")
 
-	err := godotenv.Load("env/.env")
-	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
-	}
+	// Database configuration - only initialize if all required environment variables are present
+	dbHost := os.Getenv("DBHOST")
+	dbUser := os.Getenv("DBUSER")
+	dbPass := os.Getenv("DBPASS")
+	dbName := os.Getenv("DBNAME")
+	
+	var dbManager *manager.DBManager
+	
+	if dbHost != "" && dbUser != "" && dbName != "" {
+		config := manager.DBConfig{
+			Host:     dbHost,
+			Port:     3306,
+			User:     dbUser,
+			Password: dbPass,
+			DBName:   dbName,
+		}
 
-	config := manager.DBConfig{
-		Host:     os.Getenv("DBHOST"),
-		Port:     3306,
-		User:     os.Getenv("DBUSER"),
-		Password: os.Getenv("DBPASS"),
-		DBName:   os.Getenv("DBNAME"),
-	}
-
-	dbManager, err := manager.NewDBManager(config)
-	if err != nil {
-		log.Fatalf("Fehler beim Verbindungsaufbau: %v", err)
+		var err error
+		dbManager, err = manager.NewDBManager(config)
+		if err != nil {
+			log.Printf("Warning: unable to connect to database: %v", err)
+		} else {
+			log.Println("Successfully connected to database at", dbHost)
+			defer dbManager.Close()
+		}
 	} else {
-		log.Println("Verbindung zu", os.Getenv("DBHOST"), "erfolgreich!")
+		log.Println("Database connection skipped - environment variables not configured")
 	}
-	defer dbManager.Close()
 
-	//API Manager
+	// Initialize API Manager
+	apiManager := manager.NewAPIManager()
 
-	//apiManager := manager.NewAPIManager()
+	// Setup HTTP server
+	router := gin.Default()
+	api.SetupRoutes(router, apiManager)
 
-	// id, err := handlers.GetHighestVMID(apiManager, apiManager.Node)
-	// if err != nil {
-	// 	log.Fatalf("Error getting highest VM ID: %v", err)
-	// } else {
-	// 	fmt.Printf("Highest VM ID: %d\n", id)
-	// }
-
-	// // config := handlers.NewDefaultVMConfig()
-	// // config.VMID = fmt.Sprintf("%d", id)
-	// // config.Name = "test-vm"
-	// // config.Memory = "4096"
-	// // config.Cores = "2"
-
-	// // result, err := handlers.CreateVM(apiManager, config)
-	// // if err != nil {
-	// // 	log.Fatalf("Error creating VM: %v", err)
-	// // }
-
-	// // prettyJSON, _ := json.MarshalIndent(result, "", "    ")
-	// // fmt.Printf("\nVM Creation Result:\n%s\n", string(prettyJSON))
-
-	// containerConfig := handlers.NewDefaultContainerConfig()
-	// containerConfig.CTID = "102"
-	// containerConfig.Name = "test-container"
-	// containerConfig.Disk = "100"
-	// containerConfig.Memory = "2048"
-	// containerConfig.Cores = "2"
-
-	// result, err := handlers.CreateContainer(apiManager, containerConfig)
-	// if err != nil {
-	// 	log.Fatalf("Error creating container: %v", err)
-	// }
-
-	// prettyJSON, _ := json.MarshalIndent(result, "", "    ")
-	// fmt.Printf("\nContainer Creation Result:\n%s\n", string(prettyJSON))
+	// Start the server
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Printf("Starting server on port %s", port)
+	router.Run(":" + port)
 }

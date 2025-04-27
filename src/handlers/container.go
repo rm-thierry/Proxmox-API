@@ -45,7 +45,7 @@ func NewDefaultContainerConfig() ContainerConfig {
 		Net:          "name=eth0,bridge=vmbr0,ip=dhcp",
 		Template:     GetTemplates().Debian,
 		Unprivileged: true,
-		Password:     "Proxmox123!",
+		Password:     "",
 	}
 }
 

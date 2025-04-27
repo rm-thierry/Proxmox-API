@@ -30,12 +30,12 @@ func NewDBManager(config DBConfig) (*DBManager, error) {
 
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("fehler beim Öffnen der Datenbankverbindung: %v", err)
+		return nil, fmt.Errorf("error opening database connection: %v", err)
 	}
 
 	if err := db.Ping(); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("fehler beim Testen der Datenbankverbindung: %v", err)
+		return nil, fmt.Errorf("error testing database connection: %v", err)
 	}
 
 	db.SetMaxOpenConns(25)
@@ -51,7 +51,7 @@ func (m *DBManager) Close() error {
 func (m *DBManager) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	rows, err := m.db.Query(query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("fehler bei der Abfrage: %v", err)
+		return nil, fmt.Errorf("error executing query: %v", err)
 	}
 	return rows, nil
 }
@@ -63,7 +63,7 @@ func (m *DBManager) QueryRow(query string, args ...interface{}) *sql.Row {
 func (m *DBManager) Exec(query string, args ...interface{}) (sql.Result, error) {
 	result, err := m.db.Exec(query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("fehler beim Ausführen: %v", err)
+		return nil, fmt.Errorf("error executing statement: %v", err)
 	}
 	return result, nil
 }
@@ -71,7 +71,7 @@ func (m *DBManager) Exec(query string, args ...interface{}) (sql.Result, error) 
 func (m *DBManager) Prepare(query string) (*sql.Stmt, error) {
 	stmt, err := m.db.Prepare(query)
 	if err != nil {
-		return nil, fmt.Errorf("fehler beim Vorbereiten der Anweisung: %v", err)
+		return nil, fmt.Errorf("error preparing statement: %v", err)
 	}
 	return stmt, nil
 }

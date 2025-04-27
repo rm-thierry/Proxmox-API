@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"rm-thierry/Proxmox-API/src/handlers"
 	"rm-thierry/Proxmox-API/src/manager"
@@ -25,7 +26,7 @@ func NewVMHandler(apiManager *manager.APIManager) *VMHandler {
 
 func SetupRoutes(router *gin.Engine, apiManager *manager.APIManager) {
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:3000"}
+	config.AllowAllOrigins = true
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
 
@@ -62,12 +63,16 @@ func (h *VMHandler) CreateVM(c *gin.Context) {
 	}
 
 	if config.VMID == "" || config.Name == "" {
-		defaultConfig := handlers.NewDefaultVMConfig()
 		if config.VMID == "" {
-			config.VMID = defaultConfig.VMID
+			highestID, err := handlers.GetHighestVMID(h.apiManager, h.apiManager.Node)
+			if err != nil {
+				sendResponse(c, http.StatusInternalServerError, false, nil, fmt.Sprintf("Error getting highest VM ID: %v", err))
+				return
+			}
+			config.VMID = fmt.Sprintf("%d", highestID)
 		}
 		if config.Name == "" {
-			config.Name = defaultConfig.Name
+			config.Name = "vm-" + config.VMID
 		}
 	}
 
@@ -75,8 +80,12 @@ func (h *VMHandler) CreateVM(c *gin.Context) {
 	switch config.OSType {
 	case "debian":
 		config.ISO = isos.Debian
+	case "ubuntu":
+		config.ISO = isos.Ubuntu
+	case "windows":
+		config.ISO = isos.Windows
 	default:
-		config.ISO = handlers.NewDefaultVMConfig().ISO
+		config.ISO = isos.Debian
 	}
 
 	result, err := handlers.CreateVM(h.apiManager, config)
