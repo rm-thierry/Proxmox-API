@@ -89,6 +89,11 @@ func (manager *APIManager) ApiCall(method, endpoint string, payload interface{})
 		if err != nil {
 			return nil, fmt.Errorf("error encoding payload: %v", err)
 		}
+		
+		// Log the payload for debugging purposes
+		log.Printf("Request to %s %s with payload: %s", method, url, string(body))
+	} else {
+		log.Printf("Request to %s %s with no payload", method, url)
 	}
 
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(body))
@@ -99,9 +104,14 @@ func (manager *APIManager) ApiCall(method, endpoint string, payload interface{})
 	// Set authentication headers if token credentials are available
 	if manager.TokenID != "" && manager.TokenSecret != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("PVEAPIToken=%s=%s", manager.TokenID, manager.TokenSecret))
+	} else {
+		log.Println("Warning: No authentication token provided for API request")
 	}
 	
-	req.Header.Set("Content-Type", "application/json")
+	// Set content type header
+	if method == "POST" || method == "PUT" || payload != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 
 	// Create a client that skips TLS verification to handle self-signed certificates
 	tr := &http.Transport{
@@ -119,9 +129,41 @@ func (manager *APIManager) ApiCall(method, endpoint string, payload interface{})
 	if err != nil {
 		return nil, fmt.Errorf("error reading response: %v", err)
 	}
+	
+	// Log response for debugging
+	log.Printf("Response from %s %s: Status %d, Body: %s", method, url, resp.StatusCode, string(responseBody))
 
+	// Handle different status codes appropriately
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("API error (Status %d): %s", resp.StatusCode, responseBody)
+		var errorDetails string
+		
+		// Try to parse the response as JSON to extract more detailed error information
+		var errorResponse map[string]interface{}
+		if err := json.Unmarshal(responseBody, &errorResponse); err == nil {
+			if errData, ok := errorResponse["errors"]; ok {
+				jsonErrData, _ := json.Marshal(errData)
+				errorDetails = string(jsonErrData)
+			} else if data, ok := errorResponse["data"]; ok {
+				// Try to get error message from data field
+				if dataObj, ok := data.(map[string]interface{}); ok {
+					if msg, ok := dataObj["msg"].(string); ok {
+						errorDetails = msg
+					}
+				}
+				
+				// If data is null and this is a 500 error, it's likely a Proxmox configuration issue
+				if data == nil && resp.StatusCode == 500 {
+					errorDetails = "Proxmox API returned an internal server error. This could be due to invalid VM parameters, " +
+					"insufficient disk space, missing privileges, or an issue with the storage configuration."
+				}
+			}
+		}
+		
+		if errorDetails != "" {
+			return nil, fmt.Errorf("API error (Status %d): %s - Details: %s", resp.StatusCode, responseBody, errorDetails)
+		} else {
+			return nil, fmt.Errorf("API error (Status %d): %s", resp.StatusCode, responseBody)
+		}
 	}
 
 	return responseBody, nil

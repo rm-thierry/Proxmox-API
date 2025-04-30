@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"rm-thierry/Proxmox-API/src/manager"
 	"strings"
 )
@@ -36,17 +37,13 @@ func GetISOs(apiManager *manager.APIManager, node string) ISO {
 		All:     []string{},
 	}
 	
-	// Try to get available ISOs from API
 	availableISOs, err := getAvailableISOs(apiManager, node)
 	if err != nil {
-		// Return default ISOs if API call fails
 		return defaultISO
 	}
 	
-	// Set All field with available ISOs
 	defaultISO.All = availableISOs
 	
-	// Update specific OS ISOs if they exist in available ISOs
 	for _, iso := range availableISOs {
 		if strings.Contains(strings.ToLower(iso), "debian") {
 			defaultISO.Debian = iso
@@ -63,16 +60,13 @@ func GetISOs(apiManager *manager.APIManager, node string) ISO {
 func NewDefaultVMConfig() VMConfig {
 	apiManager := manager.NewAPIManager()
 	
-	// Try to get available storages to set a valid default
 	defaultStorage := "local"
 	
-	// First try to get storages from cluster level (more comprehensive)
 	clusterResponse, err := apiManager.ApiCall("GET", "/cluster/resources?type=storage", nil)
 	if err == nil {
 		var clusterResult map[string]interface{}
 		if err := json.Unmarshal(clusterResponse, &clusterResult); err == nil {
 			if clusterData, ok := clusterResult["data"].([]interface{}); ok && len(clusterData) > 0 {
-				// Use the first available storage from cluster level
 				if store, ok := clusterData[0].(map[string]interface{}); ok {
 					if storageVal, ok := store["storage"].(string); ok {
 						defaultStorage = storageVal
@@ -82,11 +76,9 @@ func NewDefaultVMConfig() VMConfig {
 		}
 	}
 	
-	// Fallback to node-level storages if needed
 	if defaultStorage == "local" {
 		storages, err := getAvailableStorages(apiManager, apiManager.Node)
 		if err == nil && len(storages) > 0 {
-			// Use the first available storage
 			if name, ok := storages[0]["name"].(string); ok {
 				defaultStorage = name
 			}
@@ -107,7 +99,6 @@ func NewDefaultVMConfig() VMConfig {
 }
 
 func getAvailableStorages(apiManager *manager.APIManager, node string) ([]map[string]interface{}, error) {
-	// First, try to get storages from cluster resources (more comprehensive)
 	clusterStorages := make([]map[string]interface{}, 0)
 	
 	clusterResponse, err := apiManager.ApiCall("GET", "/cluster/resources?type=storage", nil)
@@ -122,13 +113,11 @@ func getAvailableStorages(apiManager *manager.APIManager, node string) ([]map[st
 							continue
 						}
 						
-						// Get storage details
 						storageDetail := map[string]interface{}{
 							"name": storageVal,
 							"type": store["type"],
 						}
 						
-						// Try to get storage content types
 						if content, ok := store["content"].(string); ok {
 							contentTypes := strings.Split(content, ",")
 							storageDetail["contentTypes"] = contentTypes
@@ -141,12 +130,10 @@ func getAvailableStorages(apiManager *manager.APIManager, node string) ([]map[st
 		}
 	}
 	
-	// If we got storages from the cluster, return them
 	if len(clusterStorages) > 0 {
 		return clusterStorages, nil
 	}
 	
-	// Fall back to node-specific storage list
 	storageResponse, err := apiManager.ApiCall("GET", fmt.Sprintf("/nodes/%s/storage", node), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get storages: %v", err)
@@ -170,13 +157,11 @@ func getAvailableStorages(apiManager *manager.APIManager, node string) ([]map[st
 				continue
 			}
 			
-			// Get storage details
 			storageDetail := map[string]interface{}{
 				"name": storageVal,
 				"type": store["type"],
 			}
 			
-			// Try to get storage content types
 			if content, ok := store["content"].(string); ok {
 				contentTypes := strings.Split(content, ",")
 				storageDetail["contentTypes"] = contentTypes
@@ -192,12 +177,10 @@ func getAvailableStorages(apiManager *manager.APIManager, node string) ([]map[st
 func GetAvailableResources(apiManager *manager.APIManager, node string) (map[string]interface{}, error) {
 	resources := make(map[string]interface{})
 	
-	// Get available storages with details
 	storages, err := getAvailableStorages(apiManager, node)
 	if err == nil {
 		resources["storages"] = storages
 		
-		// Also provide a simple list of storage names for backward compatibility
 		storageNames := make([]string, len(storages))
 		for i, storage := range storages {
 			storageNames[i] = storage["name"].(string)
@@ -205,7 +188,6 @@ func GetAvailableResources(apiManager *manager.APIManager, node string) (map[str
 		resources["storageNames"] = storageNames
 	}
 	
-	// Get available networks
 	networkResponse, err := apiManager.ApiCall("GET", fmt.Sprintf("/nodes/%s/network", node), nil)
 	if err == nil {
 		var result map[string]interface{}
@@ -219,13 +201,11 @@ func GetAvailableResources(apiManager *manager.APIManager, node string) (map[str
 						if ifaceVal, ok := net["iface"].(string); ok {
 							networks = append(networks, ifaceVal)
 							
-							// Get network details
 							netDetail := map[string]interface{}{
 								"name": ifaceVal,
 								"type": net["type"],
 							}
 							
-							// Add additional network information if available
 							if active, ok := net["active"].(bool); ok {
 								netDetail["active"] = active
 							}
@@ -240,13 +220,11 @@ func GetAvailableResources(apiManager *manager.APIManager, node string) (map[str
 		}
 	}
 	
-	// Get available ISOs
 	isos, err := getAvailableISOs(apiManager, node)
 	if err == nil {
 		resources["isos"] = isos
 	}
 	
-	// Get detailed ISO information
 	isoDetails, err := getAvailableISODetails(apiManager, node)
 	if err == nil {
 		resources["isoDetails"] = isoDetails
@@ -270,13 +248,11 @@ func getAvailableISOs(apiManager *manager.APIManager, node string) ([]string, er
 }
 
 func getAvailableISODetails(apiManager *manager.APIManager, node string) ([]map[string]interface{}, error) {
-	// Try to get ISOs from all storages that can contain ISOs
 	storages, err := getAvailableStorages(apiManager, node)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get storages: %v", err)
 	}
 	
-	// If no storages found, try to get from cluster level
 	if len(storages) == 0 {
 		clusterResponse, err := apiManager.ApiCall("GET", "/cluster/resources?type=storage", nil)
 		if err == nil {
@@ -290,13 +266,11 @@ func getAvailableISODetails(apiManager *manager.APIManager, node string) ([]map[
 								continue
 							}
 							
-							// Get storage details
 							storageDetail := map[string]interface{}{
 								"name": storageVal,
 								"type": store["type"],
 							}
 							
-							// Try to get storage content types
 							if content, ok := store["content"].(string); ok {
 								contentTypes := strings.Split(content, ",")
 								storageDetail["contentTypes"] = contentTypes
@@ -312,14 +286,12 @@ func getAvailableISODetails(apiManager *manager.APIManager, node string) ([]map[
 	
 	isoDetails := []map[string]interface{}{}
 	
-	// Loop through all storages
 	for _, storage := range storages {
 		storageName, ok := storage["name"].(string)
 		if !ok {
 			continue
 		}
 		
-		// Check if the storage supports ISO content
 		if contentTypes, ok := storage["contentTypes"].([]string); ok {
 			supportsISO := false
 			for _, contentType := range contentTypes {
@@ -334,22 +306,18 @@ func getAvailableISODetails(apiManager *manager.APIManager, node string) ([]map[
 			}
 		}
 		
-		// Get ISOs from this storage
 		response, err := apiManager.ApiCall("GET", fmt.Sprintf("/nodes/%s/storage/%s/content", node, storageName), nil)
 		if err != nil {
-			// Skip this storage if there's an error
 			continue
 		}
 		
 		var result map[string]interface{}
 		if err := json.Unmarshal(response, &result); err != nil {
-			// Skip this storage if there's an error
 			continue
 		}
 		
 		data, ok := result["data"].([]interface{})
 		if !ok {
-			// Skip this storage if the response format is invalid
 			continue
 		}
 		
@@ -369,13 +337,11 @@ func getAvailableISODetails(apiManager *manager.APIManager, node string) ([]map[
 				continue
 			}
 			
-			// Create ISO detail object
 			isoDetail := map[string]interface{}{
 				"volid": volid,
 				"storage": storageName,
 			}
 			
-			// Add additional ISO information if available
 			if format, ok := content["format"].(string); ok {
 				isoDetail["format"] = format
 			}
@@ -411,7 +377,6 @@ func validateVM(apiManager *manager.APIManager, config VMConfig) error {
 		return err
 	}
 
-	// Validate ISO if specified
 	if config.ISO != "" {
 		isos, err := getAvailableISOs(apiManager, config.Node)
 		if err != nil {
@@ -427,8 +392,12 @@ func validateVM(apiManager *manager.APIManager, config VMConfig) error {
 		}
 
 		if !found {
-			availableISOsStr := strings.Join(isos, ", ")
-			return fmt.Errorf("ISO %s not found. Available ISOs: [%s]. Use GET /api/v1/resources for complete resource information", config.ISO, availableISOsStr)
+			if strings.HasPrefix(config.ISO, "local:iso/") {
+				fmt.Printf("ISO %s not in available list but has expected format - bypassing validation\n", config.ISO)
+			} else {
+				availableISOsStr := strings.Join(isos, ", ")
+				return fmt.Errorf("ISO %s not found. Available ISOs: [%s]. Use GET /api/v1/resources for complete resource information", config.ISO, availableISOsStr)
+			}
 		}
 	}
 
@@ -452,21 +421,17 @@ func checkVMExists(apiManager *manager.APIManager, node, vmid string) (bool, err
 }
 
 func validateStorage(apiManager *manager.APIManager, config VMConfig) error {
-	// Extract storage name from disk parameter
-	// Handle both "storage" and "storage:size" formats
 	storage := config.Disk
 	if parts := strings.Split(config.Disk, ":"); len(parts) > 0 {
 		storage = parts[0]
 	}
 	
-	// First, try cluster-level resources which gives a more complete view of all storages
 	clusterResponse, err := apiManager.ApiCall("GET", "/cluster/resources?type=storage", nil)
 	if err == nil {
 		var clusterResult map[string]interface{}
 		if err := json.Unmarshal(clusterResponse, &clusterResult); err == nil {
 			clusterData, ok := clusterResult["data"].([]interface{})
 			if ok && len(clusterData) > 0 {
-				// Collect all available storages from cluster
 				availableStorages := []string{}
 				for _, s := range clusterData {
 					if store, ok := s.(map[string]interface{}); ok {
@@ -479,7 +444,6 @@ func validateStorage(apiManager *manager.APIManager, config VMConfig) error {
 					}
 				}
 				
-				// If we have storages but didn't find a match, return the error
 				if len(availableStorages) > 0 {
 					availableStoragesStr := strings.Join(availableStorages, ", ")
 					return fmt.Errorf("storage %s not found. Available storages: [%s]. Use GET /api/v1/resources for complete resource information", 
@@ -489,7 +453,6 @@ func validateStorage(apiManager *manager.APIManager, config VMConfig) error {
 		}
 	}
 	
-	// Fall back to node-specific storage list if cluster approach didn't work
 	response, err := apiManager.ApiCall("GET", fmt.Sprintf("/nodes/%s/storage", config.Node), nil)
 	if err != nil {
 		return fmt.Errorf("failed to check storage on node %s: %v", config.Node, err)
@@ -505,7 +468,6 @@ func validateStorage(apiManager *manager.APIManager, config VMConfig) error {
 		return fmt.Errorf("invalid storage response format")
 	}
 
-	// Collect all available storages for error message
 	availableStorages := []string{}
 	for _, s := range data {
 		if store, ok := s.(map[string]interface{}); ok {
@@ -518,7 +480,6 @@ func validateStorage(apiManager *manager.APIManager, config VMConfig) error {
 		}
 	}
 	
-	// Format available storages list for error message
 	availableStoragesStr := strings.Join(availableStorages, ", ")
 	return fmt.Errorf("storage %s not found. Available storages: [%s]. Use GET /api/v1/resources for complete resource information", 
 		storage, availableStoragesStr)
@@ -540,7 +501,6 @@ func validateNetwork(apiManager *manager.APIManager, config VMConfig) error {
 		return fmt.Errorf("invalid network response")
 	}
 
-	// Collect all available network bridges for error message
 	availableNetworks := []string{}
 	for _, n := range data {
 		if net, ok := n.(map[string]interface{}); ok {
@@ -553,23 +513,33 @@ func validateNetwork(apiManager *manager.APIManager, config VMConfig) error {
 		}
 	}
 	
-	// Default vmbr0 is always allowed even if it's not in the API response
-	if config.Net == "vmbr0" {
+	if config.Net == "vmbr0" || config.Net == "vmbr1" {
 		return nil
 	}
 	
-	// Format available networks list for error message
 	availableNetworksStr := strings.Join(availableNetworks, ", ")
 	return fmt.Errorf("network bridge %s not found. Available bridges: [%s]. Use GET /api/v1/resources for complete resource information", config.Net, availableNetworksStr)
 }
 
 func buildVMPayload(config VMConfig) map[string]interface{} {
-	// Handle disk configuration
 	diskConfig := config.Disk
-	// If disk doesn't already include a size specification (no colon), add a default ":0" 
-	// which tells Proxmox to use the default size
+	
 	if !strings.Contains(diskConfig, ":") {
-		diskConfig = diskConfig + ":0"
+		diskConfig = diskConfig + ":50"
+	} else {
+		parts := strings.Split(diskConfig, ":")
+		if len(parts) > 1 {
+			storage := parts[0]
+			size := parts[1]
+			
+			if strings.HasSuffix(size, "G") {
+				size = strings.TrimSuffix(size, "G")
+			} else if strings.HasSuffix(size, "M") {
+				size = strings.TrimSuffix(size, "M")
+			}
+			
+			diskConfig = storage + ":" + size
+		}
 	}
 	
 	payload := map[string]interface{}{
@@ -577,15 +547,41 @@ func buildVMPayload(config VMConfig) map[string]interface{} {
 		"name":     config.Name,
 		"cores":    config.Cores,
 		"memory":   config.Memory,
-		"virtio0":  diskConfig,
+		"virtio0":  diskConfig + ",format=raw",
 		"net0":     "virtio,bridge=" + config.Net,
 		"ostype":   config.OSType,
 		"scsihw":   "virtio-scsi-pci",
 		"bootdisk": "virtio0",
 		"sockets":  config.Sockets,
 		"cpu":      config.CPU,
+		"acpi":     1,
 	}
 
+	if _, ok := payload["acpi"]; !ok {
+		payload["acpi"] = 1
+	}
+	
+	virtio0Value := payload["virtio0"].(string)
+	parts := strings.Split(virtio0Value, ":")
+	
+	if len(parts) > 1 {
+		storageId := parts[0]
+		diskSize := parts[1]
+		
+		sizeAndFormat := strings.Split(diskSize, ",")
+		sizeSpec := sizeAndFormat[0]
+		
+		if strings.HasSuffix(sizeSpec, "G") {
+			sizeSpec = strings.TrimSuffix(sizeSpec, "G")
+		} else if strings.HasSuffix(sizeSpec, "M") {
+			sizeSpec = strings.TrimSuffix(sizeSpec, "M")
+		}
+		
+		payload["virtio0"] = fmt.Sprintf("%s:%s,format=raw", storageId, sizeSpec)
+	} else {
+		payload["virtio0"] = fmt.Sprintf("%s:50,format=raw", virtio0Value)
+	}
+	
 	if config.ISO != "" {
 		payload["ide2"] = config.ISO + ",media=cdrom"
 	}
@@ -672,12 +668,40 @@ func CreateVM(apiManager *manager.APIManager, config VMConfig) (map[string]inter
 	}
 
 	payload := buildVMPayload(config)
-	response, err := apiManager.ApiCall("POST", fmt.Sprintf("/nodes/%s/qemu", config.Node), payload)
+	
+	if storageStr, ok := payload["virtio0"].(string); ok {
+		parts := strings.Split(storageStr, ":")
+		if len(parts) >= 2 {
+			storage := parts[0]
+			size := parts[1]
+			if !strings.Contains(size, "G") && !strings.Contains(size, "M") {
+				size = size + "G"
+			}
+			if !strings.Contains(size, "format=") {
+				size = size + ",format=raw"
+			}
+			payload["virtio0"] = fmt.Sprintf("%s:%s", storage, size)
+		}
+	}
+	
+	payloadBytes, _ := json.Marshal(payload)
+	log.Printf("Creating VM with payload: %s", string(payloadBytes))
+	
+	endpoint := fmt.Sprintf("/nodes/%s/qemu", config.Node)
+	log.Printf("Sending request to endpoint: %s", endpoint)
+	
+	response, err := apiManager.ApiCall("POST", endpoint, payload)
 	if err != nil {
-
+		log.Printf("Error creating VM: %v", err)
 		return nil, fmt.Errorf("failed to create VM: %v", err)
 	}
-	return parseAPIResponse(response)
+	
+	result, err := parseAPIResponse(response)
+	if err != nil {
+		return nil, err
+	}
+	
+	return result, nil
 }
 
 func DeleteVM(apiManager *manager.APIManager, node string, vmid string) (map[string]interface{}, error) {
