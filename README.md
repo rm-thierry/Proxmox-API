@@ -1,68 +1,76 @@
 # Proxmox API Wrapper
 
-A Go-based API wrapper for Proxmox VE that provides simplified management of VMs and containers.
+A lightweight Golang API and CLI for managing Proxmox VE resources.
 
 ## Features
 
-- Create, delete, start, and stop VMs and containers
-- List available VMs and containers
-- Automatic VM and container ID generation
-- Support for multiple Proxmox nodes
-- RESTful API design
+- REST API for Proxmox VE management
+- Command-line interface for creating VMs from JSON configuration
+- VM and Container management capabilities
+- Resource listing (storage, networks, ISOs)
 
 ## Requirements
 
-- [Go (1.19+)](https://golang.org/)
-- A running Proxmox VE instance
-- API Token and appropriate permissions for the Proxmox API (optional)
+- Go 1.18+
+- Proxmox VE 7.0+
+- API Token with appropriate permissions
 
-## Installation
+## Setup
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/Proxmox-API.git
-cd Proxmox-API
-```
-
-2. Build the application:
-```bash
-go build -o proxmox-api src/main.go
-```
-
-## Configuration
-
-Create an `env/.env` file with the following variables:
+1. Clone this repository
+2. Create an `env/.env` file with your Proxmox credentials:
 
 ```
-# Proxmox API Connection
 APIURL=https://your-proxmox-server:8006/api2/json
 NODE=your-node-name
-PROXMOX_TOKEN_ID=your-token-id
+PROXMOX_TOKEN_ID=your-user@pve\!your-token-id
 PROXMOX_TOKEN_SECRET=your-token-secret
+```
 
-# Optional Database Configuration
-DBHOST=localhost
-DBUSER=dbuser
-DBPASS=dbpassword
-DBNAME=dbname
+3. Build the application:
 
-# Server Configuration
-PORT=8080
+```bash
+go build -o main
 ```
 
 ## Usage
 
-### Running the server
+### API Server
+
+Run the application without arguments to start the API server:
 
 ```bash
-./proxmox-api
+./main
 ```
 
-The API will be available at `http://localhost:8080/api/v1/`.
+The API will be available at http://localhost:8080 (or the port specified in the PORT environment variable).
 
-### API Endpoints
+### CLI Mode
 
-#### VMs
+Create a VM from a JSON configuration file:
+
+```bash
+./main -input vm_config.json
+```
+
+Example JSON configuration:
+
+```json
+{
+    "vmid": "200",
+    "name": "test-vm",
+    "cores": 2,
+    "memory": 4096,
+    "disk": "local-lvm:20G",
+    "net": "vmbr0",
+    "iso": "local:iso/debian-12.5.0-amd64-netinst.iso",
+    "ostype": "l26",
+    "cpu": "host",
+    "sockets": 1
+}
+```
+
+## API Endpoints
 
 - `GET /api/v1/vms` - List all VMs
 - `POST /api/v1/vms` - Create a new VM
@@ -70,29 +78,121 @@ The API will be available at `http://localhost:8080/api/v1/`.
 - `DELETE /api/v1/vms/:vmid` - Delete a VM
 - `POST /api/v1/vms/:vmid/start` - Start a VM
 - `POST /api/v1/vms/:vmid/stop` - Stop a VM
+- `POST /api/v1/vms/:vmid/reboot` - Reboot a VM
+- `GET /api/v1/resources` - Get resource information
+- `GET /api/v1/nodes` - List nodes
+- `GET /api/v1/storages` - List storage
+- `GET /api/v1/networks` - List networks
+- `GET /api/v1/isos` - List available ISOs
 
-#### Request Examples
+## API Usage
 
-Create a VM:
+All API endpoints use a consistent response format:
+
 ```json
-POST /api/v1/vms
 {
-  "name": "test-vm",
-  "cores": "2",
-  "memory": "4096",
-  "disk": "local-lvm:20",
-  "ostype": "debian"
+  "success": true|false,
+  "data": [result object or array],
+  "error": "Error message if success is false"
 }
+```
+
+### VM Management
+
+#### List VMs
+```
+GET /api/v1/vms?node=node-name
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "vmid": 100,
+      "name": "vm-name",
+      "status": "running"
+    }
+  ]
+}
+```
+
+#### Create VM
+```
+POST /api/v1/vms
+```
+
+Request Body:
+```json
+{
+  "vmid": "200",
+  "name": "test-vm",
+  "cores": 2,
+  "memory": 4096,
+  "disk": "local-lvm:20G",
+  "net": "vmbr0",
+  "iso": "local:iso/debian-12.5.0-amd64-netinst.iso",
+  "ostype": "l26",
+  "cpu": "host",
+  "sockets": 1
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "task_id": "UPID:..."
+  }
+}
+```
+
+#### VM Operations (Start/Stop/Reboot)
+```
+POST /api/v1/vms/{vmid}/start
+POST /api/v1/vms/{vmid}/stop
+POST /api/v1/vms/{vmid}/reboot
+```
+
+Response:
+```json
+{
+  "success": true
+}
+```
+
+### Container Management
+
+Container Configuration Format:
+```json
+{
+  "node": "pve-node",
+  "ctid": "100",
+  "name": "container-name",
+  "memory": "2000",
+  "swap": "2000",
+  "cores": "2",
+  "disk": "8",
+  "storage": "local",
+  "net": "name=eth0,bridge=vmbr0,ip=dhcp",
+  "password": "yourRootPassword",
+  "template": "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst",
+  "unprivileged": true
+}
+```
+
+### Resource Information
+
+```
+GET /api/v1/resources?node=node-name
+GET /api/v1/nodes
+GET /api/v1/storages?node=node-name
+GET /api/v1/networks?node=node-name
+GET /api/v1/isos?node=node-name
 ```
 
 ## License
 
-This project is open source and available under the [MIT License](LICENSE).
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+MIT

@@ -1,2 +1,4 @@
 env/.env
 proxmox-api
+main
+.gitignore
