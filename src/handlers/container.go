@@ -66,7 +66,7 @@ func validateContainer(apiManager *manager.APIManager, config ContainerConfig) e
 		return fmt.Errorf("Container with ID %s already exists", config.CTID)
 	}
 
-	if err := validateStorage(apiManager, VMConfig{Node: config.Node, Disk: config.Storage}); err != nil {
+	if err := validateContainerStorage(apiManager, config.Node, config.Storage); err != nil {
 		return err
 	}
 
@@ -134,6 +134,52 @@ func buildContainerPayload(config ContainerConfig) map[string]interface{} {
 		"unprivileged": config.Unprivileged,
 		"password":     config.Password,
 	}
+}
+
+// Function to parse API response
+func parseAPIResponse(response []byte) (map[string]interface{}, error) {
+	var result map[string]interface{}
+	if err := json.Unmarshal(response, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+	return result, nil
+}
+
+// Function to validate storage in container context
+func validateContainerStorage(apiManager *manager.APIManager, node, storage string) error {
+	response, err := apiManager.ApiCall("GET", fmt.Sprintf("/nodes/%s/storage", node), nil)
+	if err != nil {
+		return fmt.Errorf("failed to validate storage: %w", err)
+	}
+
+	result, err := parseAPIResponse(response)
+	if err != nil {
+		return err
+	}
+
+	data, ok := result["data"].([]interface{})
+	if !ok {
+		return fmt.Errorf("invalid storages format")
+	}
+
+	storageValid := false
+	for _, s := range data {
+		storageData, ok := s.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		
+		if name, ok := storageData["storage"].(string); ok && name == storage {
+			storageValid = true
+			break
+		}
+	}
+
+	if !storageValid {
+		return fmt.Errorf("storage '%s' not found", storage)
+	}
+
+	return nil
 }
 
 func GetContainers(apiManager *manager.APIManager, node string) ([]map[string]interface{}, error) {

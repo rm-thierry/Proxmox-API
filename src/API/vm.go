@@ -31,11 +31,12 @@ func NewVMHandler(apiManager *manager.APIManager) *VMHandler {
 
 // SetupRoutes configures all API routes
 func SetupRoutes(router *gin.Engine, apiManager *manager.APIManager) {
-	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowAllOrigins = true
-	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	corsConfig.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
-	router.Use(cors.New(corsConfig))
+	// Set up CORS configuration
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
+	router.Use(cors.New(config))
 
 	handler := NewVMHandler(apiManager)
 
@@ -109,7 +110,7 @@ func (h *VMHandler) CreateVM(c *gin.Context) {
 			statusCode = http.StatusNotFound
 		}
 
-		sendResponse(c, statusCode, false, nil, err.Error())
+		sendResponse(c, statusCode, false, nil, fmt.Sprintf("Failed to create VM: %v", err))
 		return
 	}
 
@@ -133,7 +134,7 @@ func (h *VMHandler) GetVM(c *gin.Context) {
 		if strings.Contains(err.Error(), "not found") {
 			statusCode = http.StatusNotFound
 		}
-		sendResponse(c, statusCode, false, nil, err.Error())
+		sendResponse(c, statusCode, false, nil, fmt.Sprintf("Failed to get VM: %v", err))
 		return
 	}
 
@@ -155,7 +156,7 @@ func (h *VMHandler) DeleteVM(c *gin.Context) {
 		if strings.Contains(err.Error(), "not found") {
 			statusCode = http.StatusNotFound
 		}
-		sendResponse(c, statusCode, false, nil, err.Error())
+		sendResponse(c, statusCode, false, nil, fmt.Sprintf("Failed to delete VM: %v", err))
 		return
 	}
 
@@ -202,7 +203,7 @@ func (h *VMHandler) handleVMOperation(c *gin.Context, operation string) {
 		if strings.Contains(err.Error(), "not found") {
 			statusCode = http.StatusNotFound
 		}
-		sendResponse(c, statusCode, false, nil, err.Error())
+		sendResponse(c, statusCode, false, nil, fmt.Sprintf("Failed to %s VM: %v", operation, err))
 		return
 	}
 
