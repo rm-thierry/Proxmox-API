@@ -10,3 +10,17 @@
     "cpu": "host",
     "sockets": 1
 }
+
+
+{
+    "vmid": "202",
+    "name": "test-vm",
+    "cores": 2,
+    "memory": 4096,
+    "disk": "local-lvm:20G",
+    "net": "vmbr0",
+    "iso": "local:iso/debian-12.5.0-amd64-netinst.iso",
+    "ostype": "l26",
+    "cpu": "host",
+    "sockets": 1
+}

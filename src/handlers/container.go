@@ -168,7 +168,7 @@ func validateContainerStorage(apiManager *manager.APIManager, node, storage stri
 		if !ok {
 			continue
 		}
-		
+
 		if name, ok := storageData["storage"].(string); ok && name == storage {
 			storageValid = true
 			break

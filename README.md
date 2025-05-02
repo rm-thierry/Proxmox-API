@@ -85,6 +85,114 @@ Example JSON configuration:
 - `GET /api/v1/networks` - List networks
 - `GET /api/v1/isos` - List available ISOs
 
+## API Usage
+
+All API endpoints use a consistent response format:
+
+```json
+{
+  "success": true|false,
+  "data": [result object or array],
+  "error": "Error message if success is false"
+}
+```
+
+### VM Management
+
+#### List VMs
+```
+GET /api/v1/vms?node=node-name
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "vmid": 100,
+      "name": "vm-name",
+      "status": "running"
+    }
+  ]
+}
+```
+
+#### Create VM
+```
+POST /api/v1/vms
+```
+
+Request Body:
+```json
+{
+  "vmid": "200",
+  "name": "test-vm",
+  "cores": 2,
+  "memory": 4096,
+  "disk": "local-lvm:20G",
+  "net": "vmbr0",
+  "iso": "local:iso/debian-12.5.0-amd64-netinst.iso",
+  "ostype": "l26",
+  "cpu": "host",
+  "sockets": 1
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "task_id": "UPID:..."
+  }
+}
+```
+
+#### VM Operations (Start/Stop/Reboot)
+```
+POST /api/v1/vms/{vmid}/start
+POST /api/v1/vms/{vmid}/stop
+POST /api/v1/vms/{vmid}/reboot
+```
+
+Response:
+```json
+{
+  "success": true
+}
+```
+
+### Container Management
+
+Container Configuration Format:
+```json
+{
+  "node": "pve-node",
+  "ctid": "100",
+  "name": "container-name",
+  "memory": "2000",
+  "swap": "2000",
+  "cores": "2",
+  "disk": "8",
+  "storage": "local",
+  "net": "name=eth0,bridge=vmbr0,ip=dhcp",
+  "password": "yourRootPassword",
+  "template": "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst",
+  "unprivileged": true
+}
+```
+
+### Resource Information
+
+```
+GET /api/v1/resources?node=node-name
+GET /api/v1/nodes
+GET /api/v1/storages?node=node-name
+GET /api/v1/networks?node=node-name
+GET /api/v1/isos?node=node-name
+```
+
 ## License
 
 MIT

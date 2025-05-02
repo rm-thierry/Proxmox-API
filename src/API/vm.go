@@ -12,24 +12,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Response represents a standardized API response format
 type Response struct {
 	Success bool        `json:"success"`
 	Data    interface{} `json:"data,omitempty"`
 	Error   string      `json:"error,omitempty"`
 }
 
-// VMHandler handles VM-related API endpoints
 type VMHandler struct {
 	apiManager *manager.APIManager
 }
 
-// NewVMHandler creates a new VMHandler instance
 func NewVMHandler(apiManager *manager.APIManager) *VMHandler {
 	return &VMHandler{apiManager: apiManager}
 }
 
-// SetupRoutes configures all API routes
 func SetupRoutes(router *gin.Engine, apiManager *manager.APIManager) {
 	// Set up CORS configuration
 	config := cors.DefaultConfig()
@@ -42,7 +38,6 @@ func SetupRoutes(router *gin.Engine, apiManager *manager.APIManager) {
 
 	api := router.Group("/api/v1")
 	{
-		// VM Management
 		api.GET("/vms", handler.ListVMs)
 		api.POST("/vms", handler.CreateVM)
 		api.GET("/vms/:vmid", handler.GetVM)
@@ -117,12 +112,10 @@ func (h *VMHandler) CreateVM(c *gin.Context) {
 	sendResponse(c, http.StatusCreated, true, vm, "")
 }
 
-// GetVM returns details about a specific VM
 func (h *VMHandler) GetVM(c *gin.Context) {
 	node := c.DefaultQuery("node", h.apiManager.Node)
 	vmid := c.Param("vmid")
 
-	// Validate VMID
 	if _, err := strconv.Atoi(vmid); err != nil {
 		sendResponse(c, http.StatusBadRequest, false, nil, "VMID must be a number")
 		return
@@ -141,7 +134,6 @@ func (h *VMHandler) GetVM(c *gin.Context) {
 	sendResponse(c, http.StatusOK, true, vm, "")
 }
 
-// DeleteVM deletes a virtual machine
 func (h *VMHandler) DeleteVM(c *gin.Context) {
 	node := c.DefaultQuery("node", h.apiManager.Node)
 	vmid := c.Param("vmid")
