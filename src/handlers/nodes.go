@@ -6,7 +6,7 @@ import (
 	"rm-thierry/Proxmox-API/src/manager"
 )
 
-func GetNodes(apiManager *manager.APIManager) ([]map[string]interface{}, error) {
+func GetNodess(apiManager *manager.APIManager) ([]map[string]interface{}, error) {
 	response, err := apiManager.ApiCall("GET", "/nodes", nil)
 	if err != nil {
 		return nil, err

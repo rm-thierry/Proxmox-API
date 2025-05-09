@@ -70,6 +70,10 @@ func NewAPIManager() *APIManager {
 }
 
 func (manager *APIManager) ApiCall(method, endpoint string, payload interface{}) ([]byte, error) {
+	return manager.ApiCallWithOptions(method, endpoint, payload, true)
+}
+
+func (manager *APIManager) ApiCallWithOptions(method, endpoint string, payload interface{}, useJsonContentType bool) ([]byte, error) {
 	url := manager.BaseURL + endpoint
 
 	var body []byte
@@ -90,7 +94,7 @@ func (manager *APIManager) ApiCall(method, endpoint string, payload interface{})
 		req.Header.Set("Authorization", fmt.Sprintf("PVEAPIToken=%s=%s", manager.TokenID, manager.TokenSecret))
 	}
 
-	if method == "POST" || method == "PUT" || payload != nil {
+	if useJsonContentType && (method == "POST" || method == "PUT" || payload != nil) {
 		req.Header.Set("Content-Type", "application/json")
 	}
 

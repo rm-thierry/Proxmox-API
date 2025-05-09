@@ -1,0 +1,7 @@
+{
+  "templates": {
+    "debian": "9000",
+    "ubuntu": "9001",
+    "centos": "9002"
+  }
+}
