@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	api "rm-thierry/Proxmox-API/src/API"
+	"rm-thierry/Proxmox-API/src/auth"
 	"rm-thierry/Proxmox-API/src/handlers"
 	"rm-thierry/Proxmox-API/src/manager"
 
@@ -65,9 +66,17 @@ func main() {
 		log.Println("Database connection skipped - environment variables not configured")
 	}
 
+	// Initialize auth service
+	authService := auth.NewService()
+
 	// Setup HTTP server
 	router := gin.Default()
-	api.SetupRoutes(router, apiManager)
+
+	// Trust only local proxy
+	router.SetTrustedProxies([]string{"127.0.0.1", "::1"})
+
+	// Setup API routes (protected)
+	api.SetupRoutes(router, apiManager, authService)
 
 	// Start the server
 	port := os.Getenv("PORT")
@@ -105,7 +114,25 @@ func processFileInput(filename string, apiManager *manager.APIManager) {
 	fmt.Printf("  Memory: %d MB\n", vmRequest.Memory)
 	fmt.Printf("  Disk: %s\n", vmRequest.Disk)
 	fmt.Printf("  Network: %s\n", vmRequest.Net)
-	fmt.Printf("  ISO: %s\n", vmRequest.ISO)
+
+	// Show ISO info only if not using CloudInit
+	if !vmRequest.CloudInit {
+		fmt.Printf("  ISO: %s\n", vmRequest.ISO)
+	} else {
+		fmt.Println("  Using CloudInit: Yes")
+		// Using DHCP by default
+		fmt.Println("  IP Configuration: DHCP")
+		if vmRequest.Nameserver != "" {
+			fmt.Printf("  Nameservers: %s\n", vmRequest.Nameserver)
+		}
+		if vmRequest.Searchdomain != "" {
+			fmt.Printf("  Search Domain: %s\n", vmRequest.Searchdomain)
+		}
+		if vmRequest.SSHKeys != "" {
+			fmt.Println("  SSH Keys: Configured")
+		}
+	}
+
 	fmt.Printf("  OS Type: %s\n", vmRequest.OSType)
 	fmt.Printf("  CPU: %s\n", vmRequest.CPU)
 	fmt.Printf("  Sockets: %d\n", vmRequest.Sockets)

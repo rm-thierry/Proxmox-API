@@ -8,6 +8,8 @@ A lightweight Golang API and CLI for managing Proxmox VE resources.
 - Command-line interface for creating VMs from JSON configuration
 - VM and Container management capabilities
 - Resource listing (storage, networks, ISOs)
+- Simple API token authentication
+- Custom API token for secure access
 
 ## Requirements
 
@@ -25,6 +27,12 @@ APIURL=https://your-proxmox-server:8006/api2/json
 NODE=your-node-name
 PROXMOX_TOKEN_ID=your-user@pve\!your-token-id
 PROXMOX_TOKEN_SECRET=your-token-secret
+
+# API Authentication
+API_TOKEN=your-api-token
+
+# VM Template Configuration
+# Templates are defined in env/templates.json
 ```
 
 3. Build the application:
@@ -70,10 +78,49 @@ Example JSON configuration:
 }
 ```
 
+Using a template:
+
+```json
+{
+    "name": "vm-from-template",
+    "template": "debian",
+    "memory": 4096,
+    "cores": 2,
+    "disk": "local-lvm:20G",
+    "net": "vmbr0"
+}
+```
+
+Using a template with CloudInit:
+
+```json
+{
+    "name": "cloudinit-vm",
+    "template": "debian",
+    "memory": 4096,
+    "cores": 2,
+    "disk": "local-lvm:20G",
+    "net": "vmbr0",
+    "cloudinit": true,
+    "ipconfig": {
+        "0": "ip=192.168.1.100/24,gw=192.168.1.1"
+    },
+    "sshkeys": "ssh-rsa AAAAB3NzaC1yc2EAAA... user@example.com",
+    "nameserver": "1.1.1.1 8.8.8.8",
+    "searchdomain": "example.com",
+    "ciuser": "clouduser",
+    "cipassword": "cloudpassword"
+}
+```
+
 ## API Endpoints
+
+### Proxmox API Endpoints (All Protected by API Token)
 
 - `GET /api/v1/vms` - List all VMs
 - `POST /api/v1/vms` - Create a new VM
+- `POST /api/v1/vms/template` - Create a VM from template
+- `POST /api/v1/vms/clone` - Clone a VM
 - `GET /api/v1/vms/:vmid` - Get VM details
 - `DELETE /api/v1/vms/:vmid` - Delete a VM
 - `POST /api/v1/vms/:vmid/start` - Start a VM
@@ -84,8 +131,21 @@ Example JSON configuration:
 - `GET /api/v1/storages` - List storage
 - `GET /api/v1/networks` - List networks
 - `GET /api/v1/isos` - List available ISOs
+- `GET /api/v1/templates` - List available VM templates
 
 ## API Usage
+
+### Authentication
+
+All API endpoints require a valid API token in the Authorization header:
+
+```
+Authorization: Bearer your-api-token
+```
+
+The API token is configured in your `.env` file. For security purposes, use a strong, randomly generated token in production environments.
+
+### Response Format
 
 All API endpoints use a consistent response format:
 
@@ -98,6 +158,13 @@ All API endpoints use a consistent response format:
 ```
 
 ### VM Management
+
+> **Note:** 
+> - Templates are defined in the `env/templates.json` file with the format `{"templates": {"debian": "9000", "ubuntu": "9001"}}`
+> - The VMID in the templates.json file refers to an existing VM that will be cloned when creating a new VM from that template
+> - For CloudInit support, your template VM should be prepared with cloud-init packages and configured properly
+> - When using CloudInit, the ISO parameter is ignored as the ide2 device is used for CloudInit
+> - CloudInit can set user credentials with `ciuser` and `cipassword` parameters
 
 #### List VMs
 ```
@@ -123,7 +190,7 @@ Response:
 POST /api/v1/vms
 ```
 
-Request Body:
+Request Body (standard ISO boot):
 ```json
 {
   "vmid": "200",
@@ -136,6 +203,30 @@ Request Body:
   "ostype": "l26",
   "cpu": "host",
   "sockets": 1
+}
+```
+
+Request Body (with CloudInit):
+```json
+{
+  "vmid": "200",
+  "name": "test-vm",
+  "cores": 2,
+  "memory": 4096,
+  "disk": "local-lvm:20G",
+  "net": "vmbr0",
+  "ostype": "l26",
+  "cpu": "host",
+  "sockets": 1,
+  "cloudinit": true,
+  "ipconfig": {
+    "0": "ip=192.168.1.100/24,gw=192.168.1.1"
+  },
+  "sshkeys": "ssh-rsa AAAAB3NzaC1yc2EAAA... user@example.com",
+  "nameserver": "1.1.1.1 8.8.8.8",
+  "searchdomain": "example.com",
+  "ciuser": "clouduser",
+  "cipassword": "cloudpassword"
 }
 ```
 
@@ -160,6 +251,101 @@ Response:
 ```json
 {
   "success": true
+}
+```
+
+#### Create VM from Template
+```
+POST /api/v1/vms/template
+```
+
+Request Body (standard):
+```json
+{
+  "node": "pve",
+  "vmid": "200",
+  "name": "template-vm",
+  "template": "debian",
+  "memory": 4096,
+  "cores": 2,
+  "disk": "local-lvm:20G",
+  "net": "vmbr0"
+}
+```
+
+Request Body (with CloudInit):
+```json
+{
+  "node": "pve",
+  "vmid": "200",
+  "name": "template-vm",
+  "template": "debian",
+  "memory": 4096,
+  "cores": 2,
+  "disk": "local-lvm:20G",
+  "net": "vmbr0",
+  "cloudinit": true,
+  "ipconfig": {
+    "0": "ip=192.168.1.100/24,gw=192.168.1.1"
+  },
+  "sshkeys": "ssh-rsa AAAAB3NzaC1yc2EAAA... user@example.com",
+  "nameserver": "1.1.1.1 8.8.8.8",
+  "searchdomain": "example.com",
+  "ciuser": "clouduser",
+  "cipassword": "cloudpassword"
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "task_id": "UPID:..."
+  }
+}
+```
+
+#### Clone VM
+```
+POST /api/v1/vms/clone
+```
+
+Request Body:
+```json
+{
+  "source_node": "pve",
+  "source_vmid": "100",
+  "target_node": "pve",
+  "target_vmid": "101",
+  "name": "clone-vm"
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "task_id": "UPID:..."
+  }
+}
+```
+
+#### Get Available Templates
+```
+GET /api/v1/templates
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "debian": "9000",
+    "ubuntu": "9001",
+    "centos": "9002"
+  }
 }
 ```
 
